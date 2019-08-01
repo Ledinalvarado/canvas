@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>HTML5 Canvas</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+        }
+        #mesa-dibujo {
+            border: 1px solid #000;
+        }
+        #colores {
+            display: flex;
+            width: 100%;
+            padding: 10px;
+        }
+        #colores .color {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            margin-left: 10px;
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+        #colores .color:hover {
+            border: 2px solid #000;
+        }
+        #colores .color.negro {
+            background-color: #000;
+        }
+        #colores .color.azul {
+            background-color: #00F;
+        }
+        #colores .color.rojo {
+            background-color: #F00;
+        }
+        #colores .color.verde {
+            background-color: #0F0;
+        }
+
+        #pincel{
+
+            padding: 10px;
+            width: 100%;
+            margin: 15px;
+
+        }
+    </style>
+</head>
+<body>
+
+<canvas id="mesa-dibujo" width=800" height="400"></canvas>
+
+<div id="colores">
+    <div class="color negro" onclick="cambiarColor('#000')"></div>
+    <div class="color azul" onclick="cambiarColor('#00F')"></div>
+    <div class="color rojo" onclick="cambiarColor('#F00')"></div>
+    <div class="color verde" onclick="cambiarColor('#0F0')"></div>
+</div>
+
+<div id="pincel">
+
+    Selecciona un grosor: <select name="valorgrosor" onchange="cambiargrosor(this.value)">
+    <option value="1"  selected>1</option>
+    <option value="2">2</option>
+    <option value="3">3</option>
+    <option value="4">4</option>
+    <option value="5">5</option>
+    <option value="6">6</option>
+    <option value="7">7</option>
+    <option value="8">8</option>
+    <option value="9">9</option>
+    <option value="10">10</option>
+</select>
+
+</div>
+
+<script>
+
+    const ws = new WebSocket("ws://127.0.0.1:4000");
+    let canvas = document.getElementById("mesa-dibujo");
+    canvas.width = window.innerWidth;
+
+    let contexto = canvas.getContext("2d");
+    let presionado = false;
+    let coordenadasAgrupadas = [];
+
+
+
+
+
+
+    ws.onopen = function () {
+        console.log("Conexión abierta")
+    };
+
+    ws.onmessage = function (data) {
+        let info = JSON.parse(data.data);
+        contexto.beginPath();
+        for (let i = 0; i < info.length; i++) {
+
+            contexto.strokeStyle = info[i].color;
+            contexto.lineWidth = info[i].grosor;
+            contexto.lineTo(info[i].x, info[i].y);
+            contexto.stroke();
+
+        }
+
+        // if (info.comenzar) {
+        //     contexto.beginPath();
+        // }
+        // contexto.strokeStyle = info.color;
+        // contexto.lineTo(info.x, info.y);
+        // contexto.stroke();
+        // console.log(info);
+    };
+
+    canvas.addEventListener('mousedown', function (e) {
+        presionado = true;
+        contexto.beginPath();
+        //contexto.stroke();
+        // let objeto = {
+        //     "comenzar": true
+        // };
+        //ws.send(JSON.stringify(objeto));
+
+    });
+    canvas.addEventListener('mouseup', function (e) {
+        presionado = false;
+        ws.send(JSON.stringify(coordenadasAgrupadas));
+        coordenadasAgrupadas = [];
+        contexto.beginPath();
+    });
+    canvas.addEventListener('mousemove', function (e) {
+        if (presionado) {
+            contexto.lineTo(e.x, e.y);
+            contexto.stroke();
+            let datos = {
+                x: e.x,
+                y: e.y,
+                color: contexto.strokeStyle,
+                grosor:contexto.lineWidth,
+
+            };
+            coordenadasAgrupadas.push(datos);
+            //ws.send(JSON.stringify(datos));
+        }
+    });
+
+    function cambiarColor(color) {
+        contexto.strokeStyle = color;
+    }
+
+    function cambiargrosor(value){
+        contexto.lineWidth = value;
+        console.log(value);
+    }
+
+</script>
+</body>
+</html>
